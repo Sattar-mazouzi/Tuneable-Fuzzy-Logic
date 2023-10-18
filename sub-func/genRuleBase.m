@@ -1,9 +1,9 @@
 function out = genRuleBase(fisVarParameters,rules_data)
 
 % get the number of memebership function for each fuccu variable
-in1_mf = fisVarParameters(1,2) ;
-in2_mf = fisVarParameters(2,2) ;
-out_mf = fisVarParameters(3,2) ;
+in1_mf = fisVarParameters(1,3) ;
+in2_mf = fisVarParameters(2,3) ;
+out_mf = fisVarParameters(3,3) ;
 rules_row_nums = in1_mf*in2_mf;
 % intialize an empty rule-base matrix
 rule_base = zeros(in1_mf*in2_mf,5); 

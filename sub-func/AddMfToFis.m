@@ -11,7 +11,7 @@ function out = AddMfToFis(fis, mfParameters, mfTypes,fisVarParameters,fisVarName
         fuzzyVar = fuzzyVarParams(i,:); % get variable parameter
         mf_type = mf_types_cell{i};
         sel_var = mf_parameters{i};
-        for j = 1:fuzzyVar(2)                    % iterate through the number of MFs 
+        for j = 1:fuzzyVar(3)                    % iterate through the number of MFs 
             if mf_type(j) ==0
                 mfparams = sel_var(idx:idx+2);  
                 fis = addMF(fis,fuzzyVarNames(i), 'trimf', mfparams, "Name",mf_names{i}(j));

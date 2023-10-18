@@ -3,16 +3,16 @@ mfs = {[],[],[]};
 var1  = fuzzyVarParams(1,:); 
 var2 = fuzzyVarParams(2,:);
 var3 = fuzzyVarParams(3,:);
-mf_types_cell = {[mf_types(1:var1(2))],[mf_types(var1(2)+1:var1(2)+var2(2))], ...
-    [mf_types(var1(2)+var2(2)+1:var1(2)+var2(2)+var3(2))]} ;
+mf_types_cell = {[mf_types(1:var1(3))],[mf_types(var1(3)+1:var1(3)+var2(3))], ...
+    [mf_types(var1(3)+var2(3)+1:var1(3)+var2(3)+var3(3))]} ;
 varit = size(fuzzyVarParams);               % get the number of fuzzy variable 
 
 for i = 1:varit(1)                          % iterate through the number of Variables
     idx = 1;
     fuzzyVar = fuzzyVarParams(i,:); % get variable parameter
-    step = fuzzyVar(1)/(fuzzyVar(2)-1);
+    step = fuzzyVar(2)/(fuzzyVar(3)-1);
     mf_type = mf_types_cell{i}; 
-    for j = 1:fuzzyVar(2)                    % iterate through the number of MFs 
+    for j = 1:fuzzyVar(3)                    % iterate through the number of MFs 
         indic = step*j; 
         if mf_type(j) ==0
             mfparams = [indic-2*step, indic-step, indic];
