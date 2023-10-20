@@ -1,10 +1,6 @@
-function [out1, out2 ]= genUniformMfs(fuzzyVarParams, mf_types)
+function out1 = genUniformMfs(fuzzyVarParams, mf_types)
 mfs = {[],[],[]}; 
-var1  = fuzzyVarParams(1,:); 
-var2 = fuzzyVarParams(2,:);
-var3 = fuzzyVarParams(3,:);
-mf_types_cell = {[mf_types(1:var1(3))],[mf_types(var1(3)+1:var1(3)+var2(3))], ...
-    [mf_types(var1(3)+var2(3)+1:var1(3)+var2(3)+var3(3))]} ;
+mf_types_cell = mf_types; 
 varit = size(fuzzyVarParams);               % get the number of fuzzy variable 
 
 for i = 1:varit(1)                          % iterate through the number of Variables
@@ -28,5 +24,4 @@ for i = 1:varit(1)                          % iterate through the number of Vari
 
 end
 out1 = mfs ;
-out2 = mf_types_cell; 
 end 

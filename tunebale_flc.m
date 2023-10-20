@@ -22,10 +22,11 @@ function out = tunebale_flc(input1,input2,output,mf_types,rules,rand_mfs )
 
     %% generate a uniformly distributed memebership function
     % generate MFs parameters and MF types
-    [mf_parameters, mf_types_cell] = genUniformMfs(fuzzyVarParams,mf_types); 
-    mf_parameters  = transformToMfs(fuzzyVarParams, rand_mfs,mf_types_cell);
+    mf_parameters = genUniformMfs(fuzzyVarParams,mf_types);
+    %mf_parameters  = transformToMfs(fuzzyVarParams, rand_mfs,mf_types);
+    %mf_parameters = rand_mfs;
     % generate MFs names 
-    mf_names  = genMfNames(mf_types_cell); 
+    mf_names  = genMfNames(mf_types); 
   
     %% Create Fis 
     fis = mamfis('Name','fis');
@@ -34,10 +35,11 @@ function out = tunebale_flc(input1,input2,output,mf_types,rules,rand_mfs )
     fis = addOutput(fis, out_range,'Name', out_name); 
     
     % add the membership functions to each FIS variable
-    fis = AddMfToFis(fis, mf_parameters,mf_types_cell,fuzzyVarParams,fuzzyVarNames,mf_names); 
+    fis = AddMfToFis(fis, mf_parameters,mf_types,fuzzyVarParams,fuzzyVarNames,mf_names); 
    
     % add the rule-base of the FIS
     rule_base = genRuleBase(fuzzyVarParams,rules);
+    %rule_base = rules; 
     fis = addrule(fis, rule_base); 
     out = fis; 
 end

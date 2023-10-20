@@ -9,7 +9,7 @@ function out = transformToMfs(fisVarParameters, mf_parameters, mf_types)
         var_range_upper = fisVarParameters(fis_var,2); 
         var_range_lower = fisVarParameters(fis_var,1); 
         mf_nums = fisVarParameters(fis_var,3);
-        base =  var_range_upper/(mf_nums*3);
+        base =  var_range_upper/(mf_nums*4);
         mf_centers = zeros(1,mf_nums); 
 
         var_mfParams = mf_parameters{fis_var}; 
@@ -17,7 +17,7 @@ function out = transformToMfs(fisVarParameters, mf_parameters, mf_types)
         idx =1; 
         for mf=1:mf_nums  % iterate through the number of mfs
              upper_bd = var_range_upper - 2*base*(mf_nums-mf); % th upper limit of the mf 
-             lower_bd = 1.5*mf*base; 
+             lower_bd = 2*mf*base; 
             if var_mfTypes(mf)== 0 
                 tparams = var_mfParams(idx:idx+2);
                 if mf ==1  % chechk if it is a Triangular mf
