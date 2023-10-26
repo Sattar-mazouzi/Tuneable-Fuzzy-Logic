@@ -1,4 +1,4 @@
-function out = tunebale_flc(input1,input2,output,mf_types,rules,rand_mfs ) 
+function out = tunebale_flc(input1,input2,output,mf_types,rules,mf_parameters) 
     addpath("sub-func","opt-func\");
 
     %% extract fuzzy variable information 
@@ -22,7 +22,7 @@ function out = tunebale_flc(input1,input2,output,mf_types,rules,rand_mfs )
 
     %% generate a uniformly distributed memebership function
     % generate MFs parameters and MF types
-    mf_parameters = genUniformMfs(fuzzyVarParams,mf_types);
+    %mf_parameters = genUniformMfs(fuzzyVarParams,mf_types);
     %mf_parameters  = transformToMfs(fuzzyVarParams, rand_mfs,mf_types);
     %mf_parameters = rand_mfs;
     % generate MFs names 
@@ -38,8 +38,9 @@ function out = tunebale_flc(input1,input2,output,mf_types,rules,rand_mfs )
     fis = AddMfToFis(fis, mf_parameters,mf_types,fuzzyVarParams,fuzzyVarNames,mf_names); 
    
     % add the rule-base of the FIS
-    rule_base = genRuleBase(fuzzyVarParams,rules);
-    %rule_base = rules; 
+    %rule_base = genRuleBase(fuzzyVarParams,rules);
+    
+    rule_base = rules; 
     fis = addrule(fis, rule_base); 
     out = fis; 
 end
