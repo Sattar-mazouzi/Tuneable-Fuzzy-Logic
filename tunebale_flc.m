@@ -1,5 +1,5 @@
 function out = tunebale_flc(input1,input2,output,mf_types,rules,mf_parameters) 
-    addpath("sub-func","opt-func\");
+    %addpath("sub-func","opt-func\");
 
     %% extract fuzzy variable information 
     

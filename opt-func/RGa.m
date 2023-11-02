@@ -1,4 +1,4 @@
-function out = RGA(problem, params) 
+function out = RGa(problem, params) 
  
 %% Problem 
 CostFunction = problem.CostFunction; 

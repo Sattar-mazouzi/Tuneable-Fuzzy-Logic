@@ -1,4 +1,4 @@
-function [out,logg, hist] = PaSO(problem, params ) 
+function [out,logg, hist] = Pso(problem, params ) 
 
 
     %% Problem definistion 

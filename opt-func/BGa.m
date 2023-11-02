@@ -1,4 +1,4 @@
-function out = GAa(problem, params) 
+function out = BGa(problem, params) 
 
 %% Problem 
 CostFunction = problem.CostFunction; 
@@ -10,7 +10,7 @@ Npop = params.nPop ;
 mu = params.mu ; 
 betea = params.betea; 
 pc = params.pc ; 
-nc = (round(pc*Npop)/2)*2; 
+nc = (round((pc*Npop)/2))*2; 
 
 SelectionFunc = params.SelectionFunc; 
 CrossoverFunc = params.CrossoverFunc; 
