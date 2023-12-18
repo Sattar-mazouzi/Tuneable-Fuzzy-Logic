@@ -11,6 +11,7 @@ classdef  TuneableFis < handle
         Problem;
         Optimization_Data;
         Tune_Flag ;
+        Tune_options
     end
     methods
         % Use the constructor to initilaze a FIS with a gevin parameters
@@ -24,6 +25,7 @@ classdef  TuneableFis < handle
                 obj.Fis_Parameters = [obj.input1.range, obj.input1.MfNumber;
                     obj.input2.range, obj.input2.MfNumber;
                     obj.output.range, obj.output.MfNumber];
+                    obj.Tune_options.tune_operators  = false;
                 obj.create_fis();
             else
                 disp("you must specify the Fis parameters");
@@ -83,7 +85,13 @@ classdef  TuneableFis < handle
             
             
         end
-        function output = TuneRules(obj,problem)
+        function output = TuneRules(obj,problem, tune_operator)
+            arguments 
+                obj TuneableFis;  
+                problem struct;  
+                tune_operator logical; 
+            end 
+            obj.Tune_options.tune_operators = tune_operator;
             disp("----> Start Rule-base optimization <----");
             obj.Tune_Flag = "TuneRules" ;
             [decvar.nvar, decvar.varmin, decvar.varmax  ] = obj.rule_data();
@@ -131,6 +139,10 @@ classdef  TuneableFis < handle
             output = obj.TuneMfs(problem)  ;
         end
         function runoptimization(obj,X)
+            arguments
+                obj TuneableFis; 
+                X double; 
+            end 
             if obj.Tune_Flag == "TuneMfTypes"
                 
                 obj.Mf_Types = obj.mftype_data(X);
@@ -403,6 +415,10 @@ classdef  TuneableFis < handle
         end
         % this function generats a a rule base for the fis based on the given rule date
         function out = genRuleBase(obj,rules_data)
+            arguments 
+                obj TuneableFis;
+                rules_data double 
+            end
             fisVarParameters = obj.Fis_Parameters;
             % get the number of memebership function for each fuzzy variable
             in1_mf = fisVarParameters(1,3) ;
@@ -428,10 +444,15 @@ classdef  TuneableFis < handle
             output_rules = rules_data(1:3*rules_row_nums);
             %reshape the binary 1-D vector into a 2-D matrix of binary elements
             bin_rules = reshape(output_rules,rules_row_nums,3);
-            
-            opperators= rules_data((3*rules_row_nums+1):end); %get the operator vector
-            %convert operator vector into ones and twos for END/OR operators
-            opperators(opperators==0) = 2;
+             %get the operator vector
+            opperators= rules_data((3*rules_row_nums+1):end);
+            if obj.Tune_options.tune_operators  == true
+                %convert operator vector into ones and twos for END/OR operators
+                opperators(opperators==0) = 2; 
+            else  
+                % make the operator vector all ones
+                opperators(opperators==0) = 1; 
+            end
             
             % convert the binary rules to a decimal rules
             rules_to_dec = binaryVectorToDecimal(bin_rules);
