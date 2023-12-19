@@ -104,6 +104,23 @@ classdef  TuneableFis < handle
             output = obj.Optimization_Data;
             
         end
+        %this fucntion tunes the rules wieghts  
+        function output = TuneRuleWeigths(obj, problem) 
+            disp("-----> Start ruel weights optimization <--------"); 
+            obj.Tune_Flag = "TuneRW"; 
+
+            decvar.nvar = obj.input1.MfNumber*obj.input2.MfNumber; 
+            decvar.varmin = 0; 
+            decvar.varmax = 1 ; 
+            obj.Problemdef(problem, decvar)
+            tic;
+            obj.Optimization_Data = RGa(obj.Problem, obj.Problem);
+            time = toc;
+            obj.Optimization_Data.timeTaken = time/60;
+            obj.runoptimization(obj.Optimization_Data.bestGenome.Position);
+            output = obj.Optimization_Data;
+            
+        end
         % function to tune the fuzzy varieble ranges
         function output = TuneFuzzyVarsRange(obj, problem)
             disp("----> Start Fuzzy Variables Ranges optimization <----");
@@ -180,8 +197,10 @@ classdef  TuneableFis < handle
                 mf_parameters   = obj.genUniformMfs(obj.Fis_Parameters,obj.Mf_Types);
                 obj.Mfs_Parameters = mf_parameters;
                 obj.Fis =  tunebale_flc(obj.input1, obj.input2, obj.output,obj.Mf_Types, obj.Rule_Base, obj.Mfs_Parameters);
-                
-                
+            elseif obj.Tune_Flag == "TuneRW" 
+                rule_weights = X' ;
+                obj.Rule_Base(:,4) = rule_weights; 
+                obj.Fis =  tunebale_flc(obj.input1, obj.input2, obj.output,obj.Mf_Types, obj.Rule_Base, obj.Mfs_Parameters);  
                 
                 
             end
