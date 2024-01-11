@@ -1,21 +1,50 @@
 classdef  TuneableFis < handle
+    % this Class used to tune a mamdani fuzzy logic inference system (FIS) 
+    % the class create a tunebale FIS, to tune a set of its parameters;
+    % ARGUMENTS: 
+    %  FIS_IN1, FIS_IN2, FIS_IN3 :  structure-type to  discribe the fuzzy variable parametes,
+    %    which contain three fields: 
+    %       name    : fuzzy variabel name (string)
+    %       range   : a tow element array contains the upper and lowe limits of fuzzy variable 
+    %       MfNumber: the number of memebership functions
+    %       Mftypes : 1-D binary array contains the type of each MF,0 for Triangular,1 for Trapezodial 
+    % the followeing parameter can be tuned: 
+    % 1- Fuzzy memebership function types are tuned by altering between Triangular\Trapezodial mf types
+    %   using TuneMfTypes(problem) class function 
+    % 2- Fuzzy variable ranges are tuned using TuneFuzzyVarsRange(problem) class method
+    % 3- Membership function parameters are tune using the TuneMfParameters(problem) 
+    % 4- The Rule base are tuned using the TuneRules(problem, arg1,arg2) method where: 
+    %       arg2: is a boolean variable to decide weather tuning the AND\OR operator True for tuning,False otherwise. 
+    %       arg3: is a cell array {[upper bounds], [Lower bounds]} 
+    % 5- The Rule Wights are optimized using TuneRuleWeigths() method 
+    % 6- The number of membership function tuned using the TuneMfsNumbers() 
+    %       !!!!! stil working on this, when changing the nuber of MfS the rules has to be updated, and the rules usualy are designe 
+    %       with human knowldge of and informations about the target system, 
+    %       the function tunes the memebership function number, and every time generates a random set of rules;  
+    %
     properties
-        input1 ;
-        input2;
-        output;
-        Rule_Base;
-        Mf_Types;
-        Fis_Parameters;
-        Mfs_Parameters;
+        input1 struct;
+        input2 struct;
+        output struct;
+        Rule_Base (:,5) double;
+        Mf_Types cell;
+        Fis_Parameters double;
+        Mfs_Parameters cell;
         Fis;
-        Problem;
-        Optimization_Data;
-        Tune_Flag ;
-        Tune_options
+        Problem =  struct('CostFunction',[],'MaxIt',[],'nPop',[]);
+        Optimization_Data  struct;
+        Tune_Flag string = "None";
+        Tune_options = struct('tune_operators',[],'rule_limits',[]) ; 
     end
     methods
         % Use the constructor to initilaze a FIS with a gevin parameters
         function obj = TuneableFis(fis_in1, fis_in2, fis_out,fis_rules)
+            arguments 
+                fis_in1 struct;  
+                fis_in2 struct; 
+                fis_out struct; 
+                fis_rules  (:,5) double ;
+            end 
             if nargin > 0
                 obj.input1 = fis_in1;
                 obj.input2 = fis_in2;
@@ -26,7 +55,7 @@ classdef  TuneableFis < handle
                     obj.input2.range, obj.input2.MfNumber;
                     obj.output.range, obj.output.MfNumber];
                     obj.Tune_options.tune_operators  = false;
-                obj.Tune_Flag = "None" ;
+                %obj.Tune_Flag = "None" ;
                 obj.create_fis();
             else
                 disp("you must specify the Fis parameters");
@@ -224,10 +253,11 @@ classdef  TuneableFis < handle
         function showfis(obj)
             fuzzy(obj.Fis);
         end
-        % this function generate a random data
+        
         function [mf_params, mf_types_cell, rules_data] = gen_data(obj,in1, in2, out)
-            
-            %% genrate test optimization data
+            % This function generate a random data 
+            % genrate test optimization data 
+            % the function used for testing, when there is no real optimization 
             code_bin = 3;
             rule_row_nums = in1.MfNumber*in2.MfNumber;
             mf_nums = in1.MfNumber+in2.MfNumber+out.MfNumber;
@@ -267,7 +297,8 @@ classdef  TuneableFis < handle
             mf_types_cell = mfTypes_cell;
             rules_data = rule_data;
         end
-        % This function to calclate the length of 1-d array of rules
+        % This function to calclate the length of 1-d array of rules 
+        % for tuning the the rule-base
         function [nvar, varmin, varmax]= rule_data(obj)
             %% genrate test optimization data
             code_bin = 3;
@@ -298,6 +329,7 @@ classdef  TuneableFis < handle
             varmin = 0;
             varmax = 1;
         end
+        % this function updates the new number of memebership functions 
         function  update_mf_numbers(obj, X)
             reshaped_X = reshape(X,4,3)';
             mf_numbers = binaryVectorToDecimal(reshaped_X)';
