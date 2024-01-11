@@ -26,6 +26,7 @@ classdef  TuneableFis < handle
                     obj.input2.range, obj.input2.MfNumber;
                     obj.output.range, obj.output.MfNumber];
                     obj.Tune_options.tune_operators  = false;
+                obj.Tune_Flag = "None" ;
                 obj.create_fis();
             else
                 disp("you must specify the Fis parameters");
@@ -39,23 +40,27 @@ classdef  TuneableFis < handle
             fis = obj.Fis;
         end
         function output = TuneMfTypes(obj, problem) % this function tunes the types of MFs to be either a Trap mf or Trian mf
-            obj.Tune_Flag ="TuneMfTypes";  %set the Tune flag to type
-            disp("----> Start MF types optimization <----");
-            % defging the number of decigion variable and its size and its upperand lower limits
-            decvar.nvar = obj.input1.MfNumber+obj.input2.MfNumber+obj.output.MfNumber;
-            decvar.varmin = 0;
-            decvar.varmax = 1;
-            % initialize the problem parameters
-            obj.Problemdef(problem, decvar);
-            tic
-            obj.Optimization_Data = BGa(obj.Problem, obj.Problem);
-            time = toc;
-            obj.Optimization_Data.timeTaken = time/60;
-            obj.runoptimization(obj.Optimization_Data.bestGenome.Position);
-            output = obj.Optimization_Data;
+            if not(obj.Tune_Flag == "TuneMfs" )
+                obj.Tune_Flag ="TuneMfTypes";  %set the Tune flag 
+                disp("----> Start MF types optimization <----");
+                % define the number of decision variable and its size and its upperlimit lowerlimits
+                decvar.nvar = obj.input1.MfNumber+obj.input2.MfNumber+obj.output.MfNumber;
+                decvar.varmin = 0;
+                decvar.varmax = 1;
+                % initialize the problem parameters
+                obj.Problemdef(problem, decvar);
+                tic
+                obj.Optimization_Data = BGa(obj.Problem, obj.Problem);
+                time = toc;
+                obj.Optimization_Data.timeTaken = time/60;
+                obj.runoptimization(obj.Optimization_Data.bestGenome.Position);
+                output = obj.Optimization_Data;
+            else 
+                disp("Enable to tune the membership function types after tuning membership function parameters.")
+            end 
             
         end
-        function output = TuneMfs(obj,problem)  % function to tune the memebership parameters
+        function output = TuneMfParameters(obj,problem)  % function to tune the memebership parameters
             obj.Tune_Flag = "TuneMfs" ;
             disp("----> Start MF parameters optimization <----");
             mf_types = [obj.Mf_Types{1},obj.Mf_Types{2},obj.Mf_Types{3}];
@@ -86,22 +91,26 @@ classdef  TuneableFis < handle
             
         end
         function output = TuneRules(obj,problem, tune_operator)
-            arguments 
-                obj TuneableFis;  
-                problem struct;  
-                tune_operator logical; 
-            end 
-            obj.Tune_options.tune_operators = tune_operator;
-            disp("----> Start Rule-base optimization <----");
-            obj.Tune_Flag = "TuneRules" ;
-            [decvar.nvar, decvar.varmin, decvar.varmax  ] = obj.rule_data();
-            obj.Problemdef(problem,decvar);
-            tic;
-            obj.Optimization_Data = BGa(obj.Problem, obj.Problem);
-            time = toc;
-            obj.Optimization_Data.timeTaken = time/60;
-            obj.runoptimization(obj.Optimization_Data.bestGenome.Position);
-            output = obj.Optimization_Data;
+                arguments 
+                    obj TuneableFis;  
+                    problem struct;  
+                    tune_operator logical = false; 
+                end 
+                obj.Tune_options.tune_operators = tune_operator;
+                if not (obj.Tune_Flag == "TuneRW")
+                disp("----> Start Rule-base optimization <----");
+                obj.Tune_Flag = "TuneRules" ;
+                [decvar.nvar, decvar.varmin, decvar.varmax  ] = obj.rule_data();
+                obj.Problemdef(problem,decvar);
+                tic;
+                obj.Optimization_Data = BGa(obj.Problem, obj.Problem);
+                time = toc;
+                obj.Optimization_Data.timeTaken = time/60;
+                obj.runoptimization(obj.Optimization_Data.bestGenome.Position);
+                output = obj.Optimization_Data; 
+            else 
+                disp("Rule must be tuned befor tuning Rule weights")
+            end
             
         end
         %this fucntion tunes the rules wieghts  
@@ -123,31 +132,38 @@ classdef  TuneableFis < handle
         end
         % function to tune the fuzzy varieble ranges
         function output = TuneFuzzyVarsRange(obj, problem)
-            disp("----> Start Fuzzy Variables Ranges optimization <----");
-            [decvar.nvar, decvar.varmin, decvar.varmax  ]  = obj.FVR_data();
-            obj.Tune_Flag = "TuneFVR";
-            obj.Problemdef(problem, decvar)
-            tic;
-            obj.Optimization_Data = RGa(obj.Problem, obj.Problem);
-            time = toc;
-            obj.Optimization_Data.timeTaken = time/60;
-            obj.runoptimization(obj.Optimization_Data.bestGenome.Position);
-            output = obj.Optimization_Data;
+            if not(obj.Tune_Flag == "TuneMfs")
+                disp("----> Start Fuzzy Variables Ranges optimization <----");
+                [decvar.nvar, decvar.varmin, decvar.varmax  ]  = obj.FVR_data();
+                obj.Tune_Flag = "TuneFVR";
+                obj.Problemdef(problem, decvar)
+                tic;
+                obj.Optimization_Data = RGa(obj.Problem, obj.Problem);
+                time = toc;
+                obj.Optimization_Data.timeTaken = time/60;
+                obj.runoptimization(obj.Optimization_Data.bestGenome.Position);
+                output = obj.Optimization_Data;
+            else 
+                disp("Enable to tune the fuzzy variablee range ofter tuning the MFs parameters") 
+            end
             
         end
         
         function output = TuneMfsNumbers(obj, problem)
+            if (obj.Tune_Flag == "None")
             disp("----> Start number of MFs optimization <----");
-            obj.Tune_Flag = "TuneMfNumber" ;
-            [decvar.nvar, decvar.varmin, decvar.varmax  ] = obj.Mfs_nums_data();
-            obj.Problemdef(problem,decvar);
-            tic;
-            obj.Optimization_Data = BGa(obj.Problem, obj.Problem);
-            time = toc;
-            obj.Optimization_Data.timeTaken = time/60;
-            obj.runoptimization(obj.Optimization_Data.bestGenome.Position);
-            output = obj.Optimization_Data;
-          
+                obj.Tune_Flag = "TuneMfNumber" ;
+                [decvar.nvar, decvar.varmin, decvar.varmax  ] = obj.Mfs_nums_data();
+                obj.Problemdef(problem,decvar);
+                tic;
+                obj.Optimization_Data = BGa(obj.Problem, obj.Problem);
+                time = toc;
+                obj.Optimization_Data.timeTaken = time/60;
+                obj.runoptimization(obj.Optimization_Data.bestGenome.Position);
+                output = obj.Optimization_Data;
+            else
+                disp("Enable to tune the number of MF") 
+            end 
         end
         function output = TuneAll(obj,problem)
             disp("----> Start full optimization")
