@@ -119,13 +119,15 @@ classdef  TuneableFis < handle
             
             
         end
-        function output = TuneRules(obj,problem, tune_operator)
+        function output = TuneRules(obj,problem, tune_operator, rule_limits)
                 arguments 
                     obj TuneableFis;  
                     problem struct;  
-                    tune_operator logical = false; 
+                    tune_operator logical = false;
+                    rule_limits  double = [obj.output.MfNumber; 1];
                 end 
-                obj.Tune_options.tune_operators = tune_operator;
+                obj.Tune_options.tune_operators = tune_operator; 
+                obj.Tune_options.rule_limits = rule_limits; 
                 if not (obj.Tune_Flag == "TuneRW")
                 disp("----> Start Rule-base optimization <----");
                 obj.Tune_Flag = "TuneRules" ;
@@ -523,12 +525,16 @@ classdef  TuneableFis < handle
             
             % convert the binary rules to a decimal rules
             rules_to_dec = binaryVectorToDecimal(bin_rules);
+
             % Apply rule constraints
-            %vec1_max = [ 3; 3; 3; 5; 5; 3; 3; 3; 5; 5; 3; 3; 3; 5; 5; 3; 3; 3; 5; 5; 3; 3; 3; 4; 4];
-            %vec1_min = [ 1; 1; 1; 2; 2; 1; 1; 1; 2; 2; 1; 1; 1; 2; 2; 1; 1; 1; 2; 2; 1; 1; 1; 2; 2];
-            rules_to_dec  = min(rules_to_dec,out_mf);
-            rules_to_dec  = max(rules_to_dec,1);
-            
+            if isequal(obj.Tune_options.rule_limits, [obj.output.MfNumber; 1])
+                rules_to_dec  = min(rules_to_dec,out_mf);
+                rules_to_dec  = max(rules_to_dec,1);
+            else 
+                %disp(rules_to_dec)
+                rules_to_dec  = min(rules_to_dec,obj.Tune_options.rule_limits(1,:)');
+                rules_to_dec  = max(rules_to_dec,obj.Tune_options.rule_limits(2,:)');
+            end 
             % Construct the rule-base
             rule_base(:,1:2) = rules_combinations;
             rule_base(:,3) = rules_to_dec;
