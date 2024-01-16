@@ -71,7 +71,7 @@ classdef  TuneableFis < handle
         function output = TuneMfTypes(obj, problem) % this function tunes the types of MFs to be either a Trap mf or Trian mf
             if not(obj.Tune_Flag == "TuneMfs" )
                 obj.Tune_Flag ="TuneMfTypes";  %set the Tune flag 
-                disp("----> Start MF types optimization <----");
+                disp("----> Start MF types optimization ");
                 % define the number of decision variable and its size and its upperlimit lowerlimits
                 decvar.nvar = obj.input1.MfNumber+obj.input2.MfNumber+obj.output.MfNumber;
                 decvar.varmin = 0;
@@ -91,7 +91,7 @@ classdef  TuneableFis < handle
         end
         function output = TuneMfParameters(obj,problem)  % function to tune the memebership parameters
             obj.Tune_Flag = "TuneMfs" ;
-            disp("----> Start MF parameters optimization <----");
+            disp("----> Start MF parameters optimization ");
             mf_types = [obj.Mf_Types{1},obj.Mf_Types{2},obj.Mf_Types{3}];
             mf_nums = obj.input1.MfNumber+obj.input2.MfNumber+obj.output.MfNumber;
             trapmf_num = sum(mf_types);
@@ -146,7 +146,7 @@ classdef  TuneableFis < handle
         end
         %this fucntion tunes the rules wieghts  
         function output = TuneRuleWeigths(obj, problem) 
-            disp("-----> Start ruel weights optimization <--------"); 
+            disp("----> Start ruel weights optimization "); 
             obj.Tune_Flag = "TuneRW"; 
 
             decvar.nvar = obj.input1.MfNumber*obj.input2.MfNumber; 
@@ -164,7 +164,7 @@ classdef  TuneableFis < handle
         % function to tune the fuzzy varieble ranges
         function output = TuneFuzzyVarsRange(obj, problem)
             if not(obj.Tune_Flag == "TuneMfs")
-                disp("----> Start Fuzzy Variables Ranges optimization <----");
+                disp("----> Start Fuzzy Variables Ranges optimization ");
                 [decvar.nvar, decvar.varmin, decvar.varmax  ]  = obj.FVR_data();
                 obj.Tune_Flag = "TuneFVR";
                 obj.Problemdef(problem, decvar)
@@ -182,7 +182,7 @@ classdef  TuneableFis < handle
         
         function output = TuneMfsNumbers(obj, problem)
             if (obj.Tune_Flag == "None")
-            disp("----> Start number of MFs optimization <----");
+            disp("----> Start number of MFs optimization ");
                 obj.Tune_Flag = "TuneMfNumber" ;
                 [decvar.nvar, decvar.varmin, decvar.varmax  ] = obj.Mfs_nums_data();
                 obj.Problemdef(problem,decvar);
@@ -197,10 +197,40 @@ classdef  TuneableFis < handle
             end 
         end
         function output = TuneAll(obj,problem)
-            disp("----> Start full optimization")
-            obj.TuneMfTypes(problem);
-            obj.TuneRules(problem);
-            output = obj.TuneMfs(problem)  ;
+            if not(obj.Tune_Flag == "TuneMfs" )
+                disp("----> Start full optimization")
+                it = 0; 
+                while it < 5
+                    if it == 0
+                        mkdir 1.Tune_Mf_types ; 
+                        cd 1.Tune_Mf_types ;
+                        out_mftypes = obj.TuneMfTypes(problem);
+                    elseif it ==1 
+                        mkdir 2.Tune_Fuzzy_Ranges
+                        cd 2.Tune_Fuzzy_Ranges
+                        out_fvrange = obj.TuneFuzzyVarsRange(problem);  
+                    elseif it == 2
+                        mkdir 3.Tune_Mfs 
+                        cd 3.Tune_Mfs
+                        out_mfparams = obj.TuneMfParameters(problem);
+                    elseif it == 3
+                        mkdir 4.Tune_Rule_Weights
+                        cd 4.Tune_Rule_Weights
+                        out_rulebase = obj.TuneRules(problem)
+                         
+                    elseif it == 4 
+                        mkdir 5.Tune_Rulebase
+                        cd 5.Tune_Rulebase
+                        out_ruleweights = obj.TuneRuleWeigths(problem);
+                    end
+                    cd ..; 
+                    it = it +1; 
+                end
+                output = out_ruleweights;
+                
+            else 
+                disp("Enable to tune the tune all after tuning membership function parameters.") 
+            end 
         end
         function runoptimization(obj,X)
             arguments
