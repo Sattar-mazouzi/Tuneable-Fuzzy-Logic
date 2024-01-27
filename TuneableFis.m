@@ -424,11 +424,19 @@ classdef  TuneableFis < handle
             mfParams_adjusted = mf_parameters;
             size_fisvars = size(fisVarParameters);
             var_nums = size_fisvars(1);  % The number of Fis variables
-            
+            offsets = zeros(1,3); 
             for fis_var = 1:var_nums
                 % Extract the parameter of MFs for the fuzzy variable
-                var_range_upper = fisVarParameters(fis_var,2);
-                var_range_lower = fisVarParameters(fis_var,1);
+                range = fisVarParameters(fis_var,1:2);
+                norm_range = obj.normrange(range);  
+                %disp(norm_range(1:2));
+                offsets(fis_var) = norm_range(3);
+                %disp(offset); 
+                %var_range_upper = fisVarParameters(fis_var,2);
+                %var_range_lower = fisVarParameters(fis_var,1); 
+                var_range_upper = norm_range(2);
+                var_range_lower = norm_range(1);
+ 
                 mf_nums = fisVarParameters(fis_var,3);
                 base =  var_range_upper/(mf_nums*3);
                 mf_centers = zeros(1,mf_nums);
@@ -482,7 +490,8 @@ classdef  TuneableFis < handle
                     end
                 end
             end
-            out = mfParams_adjusted;
+            
+            out = obj.shiftMfparameters(mfParams_adjusted,offsets); 
         end
         % this function to generats a uniformly distributed  memebership functions
         function out1 = genUniformMfs(obj,fuzzyVarParams, mf_types)
@@ -494,9 +503,9 @@ classdef  TuneableFis < handle
                 idx = 1;                                % set index to keep track for membership functions parameters
                 fuzzyVar = fuzzyVarParams(i,:);         % get ech variable parameter [range, mf number]
                 range = [fuzzyVar(1), fuzzyVar(2)]; 
-                disp(range)
+                %disp(range)
                 paramss = obj.normrange(range) ;
-                disp(paramss);
+                %disp(paramss);
                 norm_range  = paramss(1:2); %normalized range
                 offset = paramss(3);
                % offset = params(3); 
@@ -541,6 +550,14 @@ classdef  TuneableFis < handle
             up = scnd + offest; 
             out = [lw, up, offest] ;
             
+        end
+        function output = shiftMfparameters(obj, mf_parameters, offset) 
+            %% this function shifts the generated Mf parameter by te given offset  
+            size_cellarray = size(mf_parameters);  
+            for i =1:size_cellarray(2)              % itereate throgh the number of fuzzy variable 
+                mf_parameters{i} = mf_parameters{i} - offset(i); 
+            end 
+            output = mf_parameters;  
         end
         % this function generats a a rule base for the fis based on the given rule date
         function out = genRuleBase(obj,rules_data)
