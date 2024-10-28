@@ -705,8 +705,25 @@ classdef  TuneableFis < handle
             %disp(obj.Problem.VarMin ) ;
             %disp("VarMax")
             %disp(obj.Problem.VarMax) ; 
-
-            options = optimoptions('ga', PopulationType = obj.Tune_options.vartype ,PlotFcn = @gaplotbestf, MaxGenerations = MaxGens,PopulationSize = PopSize);
+            [var_ranges, mf_types, mf_params, rule_base, rule_weights ] = get_fis_parameters(obj);
+            initial_var = zeros(1,decvar.nvar); 
+            if obj.Tune_Flag == "TuneMfTypes"
+                initial_var = mf_types; 
+            elseif obj.Tune_Flag == "TuneMfs"
+                initial_var = mf_params; 
+            elseif obj.Tune_Flag == "TuneRules"
+                initial_var = rule_base; 
+            elseif obj.Tune_Flag == "TuneFVR"
+                initial_var = var_ranges;
+            elseif obj.Tune_Flag == "TuneMfNumber"
+                initial_var = zeros(1,decvar.nvar); 
+            elseif obj.Tune_Flag == "TuneRW"
+                initial_var = rule_weights; 
+            end
+            % Initialize a matrix to store the initial population
+            initialPop = [];
+            initialPop(1,:) = initial_var; 
+            options = optimoptions('ga', PopulationType = obj.Tune_options.vartype ,PlotFcn = @gaplotbestf, OutputFcn = @captureBestCosts, MaxGenerations = MaxGens,PopulationSize = PopSize, InitialPopulationMatrix = initialPop);
             [x,fval,exitflag,out, population,scores] = ga(obj.Problem.CostFunction, decvar.nvar,[],[], [],[],... 
             obj.Problem.VarMin,obj.Problem.VarMax, [], [], options);
 
@@ -717,6 +734,64 @@ classdef  TuneableFis < handle
             output.population = population;
             output.scores = scores; 
 
+        end
+        function [var_ranges, mf_types, mf_params, rule_base, rule_weights ] = get_fis_parameters(obj); 
+            %% Get Fis paramater for optimization
+            fis = obj.Fis;  
+            inputs = fis.Inputs; 
+            ouputs = fis.Outputs ; 
+
+            %% Extract mf types and parameters;  
+            input_mfs = {inputs.MembershipFunctions}; 
+            output_mfs = {ouputs.MembershipFunctions}; 
+
+            input1_mf_types = {input_mfs{1}.Type};  
+            input2_mf_types = {input_mfs{2}.Type};
+            output_mf_types = {output_mfs{1}.Type};
+
+
+            input1_mf_numericArray = cellfun(@(x) strcmp(x, "trapmf"), input1_mf_types);
+            input2_mf_numericArray = cellfun(@(x) strcmp(x, "trapmf"), input2_mf_types);
+            output_mf_numericArray = cellfun(@(x) strcmp(x, "trapmf"), output_mf_types);
+
+            % MF types array
+            mf_types  = [input1_mf_numericArray input2_mf_numericArray output_mf_numericArray]; 
+
+            input1_mf_params = cell2mat({input_mfs{1}.Parameters});
+            input2_mf_params = cell2mat({input_mfs{2}.Parameters}); 
+            output_mf_params = cell2mat({output_mfs{1}.Parameters});
+
+            % MF parameters array
+            mf_params = [input1_mf_params input2_mf_params output_mf_params];
+
+            %% Extract the fis fuzzy ranges; 
+            inputs_range = cell2mat({fis.Inputs.Range}) ; 
+            output_range = cell2mat({fis.Output.Range}); 
+
+            var_ranges = [inputs_range output_range ];  % fuzzy variable ranges 
+
+            %% Extract rulebase and Rule weights 
+            % Get the number of rules
+            numRules = length(fis.Rules);
+
+            % Initialize an array to hold the rule base in a 2D format
+            fis_ruleBase = zeros(numRules, length(fis.Inputs) + length(fis.Outputs));
+
+            % Loop through the rules to extract the antecedent and consequent
+            for i = 1:numRules
+                % Extract antecedents (input conditions)
+                antecedents = fis.Rules(i).Antecedent;
+                
+                % Extract consequents (output actions)
+                consequents = fis.Rules(i).Consequent;
+                
+                % Combine them into a single row for the 2D array
+                fis_ruleBase(i, :) = [antecedents consequents];
+            end 
+            rule_base = fis_ruleBase; 
+            % Get rule wights as an mat array  
+            rule_weights = cell2mat({fis.Rules.Weight}); 
+            
         end
    
     end
