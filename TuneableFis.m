@@ -72,7 +72,7 @@ classdef  TuneableFis < handle
         function output = TuneMfTypes(obj, problem) % this function tunes the types of MFs to be either a Trap mf or Trian mf
             if not(obj.Tune_Flag == "TuneMfs" )
                 obj.Tune_Flag ="TuneMfTypes";  %set the Tune flag
-                obj.Tune_options.vartype = 'bitstring'; 
+                obj.Tune_options.vartype = 'bitstring';
                 disp("----> Start MF types optimization ");
                 % define the number of decision variable and its size and its upperlimit lowerlimits
                 decvar.nvar = obj.input1.MfNumber+obj.input2.MfNumber+obj.output.MfNumber;
@@ -91,27 +91,12 @@ classdef  TuneableFis < handle
             obj.Tune_Flag = "TuneMfs" ;
             disp("----> Start MF parameters optimization ");
             obj.Tune_options.vartype = 'doubleVector';
-
-            mf_types = [obj.Mf_Types{1},obj.Mf_Types{2},obj.Mf_Types{3}];
-            mf_nums = obj.input1.MfNumber+obj.input2.MfNumber+obj.output.MfNumber;
-            trapmf_num = sum(mf_types);
-            triangmf_num = sum(mf_types ==0);
-            in1Mf  = mf_types(1:obj.input1.MfNumber);
-            in2Mf = mf_types(obj.input1.MfNumber+1:obj.input1.MfNumber+obj.input2.MfNumber);
-            outMf = mf_types(obj.input1.MfNumber + obj.input2.MfNumber+1:mf_nums);
-            in1Mf_params = 4*sum(in1Mf) + 3*sum(in1Mf==0);
-            in2Mf_params = 4*sum(in2Mf) + 3*sum(in2Mf==0);
-            outMf_params = 4*sum(outMf) + 3*sum(outMf==0);
-            % defining the number of decigion variable and its size and its upperand lower limits
-            decvar.nvar = 3*triangmf_num + 4*trapmf_num  ; % Number Of Unkown Variable
-            decvar.varmin = zeros(1,decvar.nvar); % Lower Boun of the Variabls
-            decvar.varmax =  [obj.input1.range(2)*ones(1,in1Mf_params),...
-                obj.input2.range(2)*ones(1,in2Mf_params),  ...
-                obj.output.range(2)*ones(1,outMf_params)];
+            
+            [decvar.nvar, decvar.varmin, decvar.varmax]=  obj.mfParamsData();
             % initialize the problem parameters
             obj.Optimization_Data = start_optimize(obj, problem, decvar );
             obj.evaluate(obj.Optimization_Data.sol);
-
+            
             output = obj.Optimization_Data;
             
             
@@ -124,17 +109,17 @@ classdef  TuneableFis < handle
                 rule_limits  double = [obj.output.MfNumber; 1];
             end
             obj.Tune_options.tune_operators = tune_operator;
-            obj.Tune_options.vartype = 'bitstring'; 
-
+            obj.Tune_options.vartype = 'bitstring';
+            
             obj.Tune_options.rule_limits = rule_limits;
             if not (obj.Tune_Flag == "TuneRW")
                 disp("----> Start Rule-base optimization <----");
                 obj.Tune_Flag = "TuneRules" ;
                 [decvar.nvar, decvar.varmin, decvar.varmax  ] = obj.rule_data();
-                decvar.varmin = [] ; 
+                decvar.varmin = [] ;
                 decvar.varmax = [];
                 obj.Problemdef(problem,decvar);
-                obj.Optimization_Data  = start_optimize(obj, problem, decvar ); 
+                obj.Optimization_Data  = start_optimize(obj, problem, decvar );
                 obj.evaluate(obj.Optimization_Data.sol);
                 output = obj.Optimization_Data;
             else
@@ -147,23 +132,24 @@ classdef  TuneableFis < handle
             disp("----> Start ruel weights optimization ");
             obj.Tune_Flag = "TuneRW";
             obj.Tune_options.vartype = 'doubleVector';
-            decvar.nvar = obj.input1.MfNumber*obj.input2.MfNumber;
-            decvar.varmin = zeros(1,decvar.nvar);
-            decvar.varmax =  ones(1,decvar.nvar);
-        % obj.Problemdef(problem, decvar)
-        %    tic;
-        %    obj.Optimization_Data = RGa(obj.Problem, obj.Problem);
-        %    time = toc;
-        %    obj.Optimization_Data.timeTaken = time/60;
-        %    obj.evaluate(obj.Optimization_Data.bestGenome.Position); 
-            obj.Optimization_Data  = start_optimize(obj, problem, decvar ); 
+            [nvar, varmin, varmax] = obj.ruleWeightsdata();
+            decvar.nvar = nvar;
+            decvar.varmin = varmin;
+            decvar.varmax =  varmax;
+            % obj.Problemdef(problem, decvar)
+            %    tic;
+            %    obj.Optimization_Data = RGa(obj.Problem, obj.Problem);
+            %    time = toc;
+            %    obj.Optimization_Data.timeTaken = time/60;
+            %    obj.evaluate(obj.Optimization_Data.bestGenome.Position);
+            obj.Optimization_Data  = start_optimize(obj, problem, decvar );
             obj.evaluate(obj.Optimization_Data.sol);
-
+            
             output = obj.Optimization_Data;
             
         end
         % function to tune the fuzzy varieble ranges
-        function output = TuneFuzzyVarsRange(obj, problem, tune_range,range_offset) 
+        function output = TuneFuzzyVarsRange(obj, problem, tune_range,range_offset)
             arguments
                 obj TuneableFis;
                 problem struct;
@@ -172,8 +158,8 @@ classdef  TuneableFis < handle
             end
             obj.Tune_options.tune_range = tune_range;
             obj.Tune_options.range_offset =range_offset;
-            obj.Tune_options.vartype = 'doubleVector'; 
-
+            obj.Tune_options.vartype = 'doubleVector';
+            
             if not(obj.Tune_Flag == "TuneMfs")
                 disp("----> Start Fuzzy Variables Ranges optimization ");
                 [decvar.nvar, decvar.varmin, decvar.varmax  ]  = obj.FVR_data();
@@ -185,7 +171,7 @@ classdef  TuneableFis < handle
                 %obj.Optimization_Data.timeTaken = time/60;
                 %
                 % obj.evaluate(obj.Optimization_Data.bestGenome.Position);
-                obj.Optimization_Data  = start_optimize(obj, problem, decvar ); 
+                obj.Optimization_Data  = start_optimize(obj, problem, decvar );
                 obj.evaluate(obj.Optimization_Data.sol);
                 output = obj.Optimization_Data;
             else
@@ -218,33 +204,58 @@ classdef  TuneableFis < handle
                     if it == 0
                         mkdir 1.Tune_Mf_types ;
                         cd 1.Tune_Mf_types ;
-                        out_mftypes = obj.TuneMfTypes(problem);
+                        out.mftypes = obj.TuneMfTypes(problem);
                     elseif it ==1
                         mkdir 2.Tune_Fuzzy_Ranges
                         cd 2.Tune_Fuzzy_Ranges
-                        out_fvrange = obj.TuneFuzzyVarsRange(problem);
+                        out.fvrange = obj.TuneFuzzyVarsRange(problem);
                     elseif it == 2
                         mkdir 3.Tune_Mfs
                         cd 3.Tune_Mfs
-                        out_mfparams = obj.TuneMfParameters(problem);
+                        out.mfparams = obj.TuneMfParameters(problem);
                     elseif it == 3
                         mkdir 4.Tune_Rule_Weights
                         cd 4.Tune_Rule_Weights
-                        out_rulebase = obj.TuneRules(problem);
+                        out.rulebase = obj.TuneRules(problem);
                         
                     elseif it == 4
                         mkdir 5.Tune_Rulebase
                         cd 5.Tune_Rulebase
-                        out_ruleweights = obj.TuneRuleWeigths(problem);
+                        out.ruleweights = obj.TuneRuleWeigths(problem);
                     end
                     cd ..;
                     it = it +1;
                 end
-                output = out_ruleweights;
+                output = out;
                 
             else
-                disp("Enable to tune the tune all after tuning membership function parameters.")
+                disp("Enable to prform  the tune all after tuning membership function parameters.")
             end
+        end
+        function output = Optimizefis(obj, problem)
+            % This function optimizes the FIS rule base, memebership functions, and rule weights
+            arguments
+                obj TuneableFis;
+                problem struct;
+            end
+            
+            disp("----> Start comperhensive optimization ");
+            obj.Tune_Flag = "CompOpt" ;
+            obj.Tune_options.vartype = 'doubleVector';
+            % define the number of decision variable and its size and its upperand lower limits
+            % mf parameters, rules, rule weights
+            [nvar, varmin, varmax] = obj.optimizeFisData();
+            decvar.nvar = nvar;
+            decvar.varmin = varmin;
+            decvar.varmax = varmax;
+            obj.Problemdef(problem,decvar);
+            
+            obj.Optimization_Data  = start_optimize(obj, problem, decvar );
+            obj.evaluate(obj.Optimization_Data.sol);
+            disp("----> Optmization completed ");
+            output = obj.Optimization_Data;
+            
+            
         end
         function evaluate(obj,X)
             arguments
@@ -253,6 +264,7 @@ classdef  TuneableFis < handle
             end
             %disp("Solution")
             %disp(X);
+            [var_ranges, mf_types, mf_params, rule_base, rule_connections, rule_weights ] = get_fis_parameters(obj);
             if obj.Tune_Flag == "TuneMfTypes"
                 
                 obj.Mf_Types = obj.mftype_data(X);
@@ -294,7 +306,20 @@ classdef  TuneableFis < handle
                 rule_weights = X' ;
                 obj.Rule_Base(:,4) = rule_weights;
                 obj.Fis =  tunebale_flc(obj.input1, obj.input2, obj.output,obj.Mf_Types, obj.Rule_Base, obj.Mfs_Parameters);
+            elseif obj.Tune_Flag == "CompOpt"
+                % update the FIS parameters
+                size_rule = size(rule_base(:,3)');
+                size_mfparams = size(mf_params);
+                size_rw = size(rule_weights);
+                x_mf = X(1:size_mfparams(2));
+                x_rule = X(size_mfparams(2)+1:size_mfparams(2)+size_rule(2));
+                x_rule_weights  = X(size_mfparams(2)+size_rule(2)+1:end);
                 
+                mf_params_data = obj.mf_parameter_data(x_mf);
+                obj.Mfs_Parameters  = obj.transformToMfs(obj.Fis_Parameters, mf_params_data, obj.Mf_Types);
+                obj.Rule_Base(:,3)= x_rule';
+                obj.Rule_Base(:,4) = x_rule_weights';
+                obj.Fis =  tunebale_flc(obj.input1, obj.input2, obj.output,obj.Mf_Types, obj.Rule_Base, obj.Mfs_Parameters);
                 
             end
         end
@@ -345,9 +370,54 @@ classdef  TuneableFis < handle
             mf_types_cell = mfTypes_cell;
             rules_data = rule_data;
         end
-        % This function to calclate the length of 1-d array of rules
-        % for tuning the the rule-base
+        function [nvar, varmin, varmax] = optimizeFisData(obj)
+            %This function calculate the data for optimizefis(), it calculatet he number of decision variables, their upper and lower limits
+            [nvar1, varmin1, varmax1]=  obj.mfParamsData();
+            
+            nvar2 = obj.input1.MfNumber*obj.input2.MfNumber;
+            varmin2 = ones(1,nvar2);
+            varmax2 =  obj.output.MfNumber * ones(1,nvar2);
+            
+            [nvar3, varmin3, varmax3] = obj.ruleWeightsdata();
+            
+            
+            nvar = nvar1 + nvar2 + nvar3;
+            varmin = [varmin1 varmin2 varmin3];
+            varmax = [varmax1 varmax2 varmax3];
+            
+        end
+        
+        function [nvar, varmin, varmax]=  mfParamsData(obj)
+            %This function calculate the data for TuneMfParameters(), it calculatet he number of decision variables, their upper and lower limits
+            mf_types = [obj.Mf_Types{1},obj.Mf_Types{2},obj.Mf_Types{3}];
+            mf_nums = obj.input1.MfNumber+obj.input2.MfNumber+obj.output.MfNumber;
+            trapmf_num = sum(mf_types);
+            triangmf_num = sum(mf_types ==0);
+            in1Mf  = mf_types(1:obj.input1.MfNumber);
+            in2Mf = mf_types(obj.input1.MfNumber+1:obj.input1.MfNumber+obj.input2.MfNumber);
+            outMf = mf_types(obj.input1.MfNumber + obj.input2.MfNumber+1:mf_nums);
+            in1Mf_params = 4*sum(in1Mf) + 3*sum(in1Mf==0);
+            in2Mf_params = 4*sum(in2Mf) + 3*sum(in2Mf==0);
+            outMf_params = 4*sum(outMf) + 3*sum(outMf==0);
+            % defining the number of decigion variable and its size and its upperand lower limits
+            nvar = 3*triangmf_num + 4*trapmf_num  ; % Number Of Unkown Variable
+            varmin = zeros(1,nvar); % Lower Boun of the Variabls
+            varmax =  [obj.input1.range(2)*ones(1,in1Mf_params),...
+                obj.input2.range(2)*ones(1,in2Mf_params),  ...
+                obj.output.range(2)*ones(1,outMf_params)];
+        end
+        function [nvar, varmin, varmax] = ruleWeightsdata(obj)
+            %This function calculate the data for TuneRuleWeigths(), it calculatet he number of decision variables, their upper and lower limits
+            nvar = obj.input1.MfNumber*obj.input2.MfNumber;
+            varmin = zeros(1,nvar);
+            varmax =  ones(1,nvar);
+            
+        end
+        
+        
         function [nvar, varmin, varmax]= rule_data(obj)
+            % This function to calclate the length of 1-d array of rules
+            % for tuning the the rule-base
             %% genrate test optimization data
             code_bin = 3;
             rule_row_nums = obj.input1.MfNumber*obj.input2.MfNumber;
@@ -358,7 +428,7 @@ classdef  TuneableFis < handle
         % this function generats the data for optimizaing the fuzzy variable ranages
         function [nvar, varmin, varmax] = FVR_data(obj)
             nvar = 6;
-            offset_rate = obj.Tune_options.range_offset; 
+            offset_rate = obj.Tune_options.range_offset;
             %size_fisvars = size(fisVarParameters);
             %var_nums = size_fisvars(1);
             
@@ -374,15 +444,15 @@ classdef  TuneableFis < handle
             offset2 = offset_rate*var_len2;
             offset3 = offset_rate*var_len3;
             
-            if obj.Tune_options.tune_range == "both" 
+            if obj.Tune_options.tune_range == "both"
                 
                 varmin = [(obj.input1.range(1) - offset1), (obj.input2.range(1) -offset2 ), (obj.output.range(1) - offset3), ...
                     (obj.input1.range(2) -offset1), (obj.input2.range(2) - offset2), (obj.output.range(2) -offset3)];
                 
                 varmax = [(obj.input1.range(1) + offset1), (obj.input2.range(1) + offset2), (obj.output.range(1) +offset3), ...
                     (obj.input1.range(2) + offset1), (obj.input2.range(2) + offset2), (obj.output.range(2) +offset3)] ;
-            elseif obj.Tune_options.tune_range  == "lower" 
-
+            elseif obj.Tune_options.tune_range  == "lower"
+                
                 varmin = [(obj.input1.range(1) - offset1), (obj.input2.range(1) -offset2 ), (obj.output.range(1) - offset3), ...
                     (obj.input1.range(2)), (obj.input2.range(2)), (obj.output.range(2))];
                 
@@ -605,7 +675,7 @@ classdef  TuneableFis < handle
             
         end
         function output = shiftMfparameters(obj, mf_parameters, offset)
-            %% this function shifts the generated Mf parameter by te given offset
+            %% this function shifts the generated Mf parameter by the given offset
             size_cellarray = size(mf_parameters);
             for i =1:size_cellarray(2)              % itereate throgh the number of fuzzy variable
                 mf_parameters{i} = mf_parameters{i} - offset(i);
@@ -697,23 +767,27 @@ classdef  TuneableFis < handle
         end
         %%%%
         function output = start_optimize(obj, problem, decvar )
-
+            
             obj.Problemdef(problem, decvar);
             MaxGens = obj.Problem.MaxIt  ;
-            PopSize = obj.Problem.nPop; 
-            %disp("Varmin"); 
+            PopSize = obj.Problem.nPop;
+            %disp("Varmin");
             %disp(obj.Problem.VarMin ) ;
             %disp("VarMax")
-            %disp(obj.Problem.VarMax) ; 
+            %disp(obj.Problem.VarMax) ;
             [var_ranges, mf_types, mf_params, rule_base, rule_connections, rule_weights ] = get_fis_parameters(obj);
-            initial_var = zeros(1,decvar.nvar); 
+            initial_var = zeros(1,decvar.nvar);
+            
+            
             if obj.Tune_Flag == "TuneMfTypes"
-                initial_var = mf_types; 
+                initial_var = mf_types;
+                intcon = [] ;
             elseif obj.Tune_Flag == "TuneMfs"
-                initial_var = mf_params; 
+                initial_var = mf_params;
+                intcon = [] ;
             elseif obj.Tune_Flag == "TuneRules"
-                rule_consequent = rule_base(:,3); 
-                connections  = rule_connections; 
+                rule_consequent = rule_base(:,3);
+                connections  = rule_connections;
                 a_bin = []; % Initialize empty array for binary digits
                 for i = 1:length(rule_consequent)
                     % Convert each number to a 3-bit binary string
@@ -721,72 +795,87 @@ classdef  TuneableFis < handle
                     % Convert the binary string to numeric digits and append to the array
                     a_bin = [a_bin, str2num(binary_str(:))']; % Convert string to double and append
                 end
-                initial_var = [a_bin connections]; 
-
+                initial_var = [a_bin connections];
+                intcon = [] ;
+                
             elseif obj.Tune_Flag == "TuneFVR"
                 initial_var = var_ranges;
+                intcon = [] ;
             elseif obj.Tune_Flag == "TuneMfNumber"
-                initial_var = zeros(1,decvar.nvar); 
+                initial_var = zeros(1,decvar.nvar);
+                intcon = [] ;
             elseif obj.Tune_Flag == "TuneRW"
-                initial_var = rule_weights; 
+                initial_var = rule_weights;
+                intcon = [] ;
+            elseif obj.Tune_Flag == "CompOpt"
+                initial_var = [mf_params rule_base(:,3)' rule_weights];
+                disp("Initial Var" + num2str(size(initial_var)));
+                disp("Nvar= " + num2str(decvar.nvar));
+                
+                size_rule = size(rule_base(:,3)');
+                size_mfparams = size(mf_params);
+                startt = size_mfparams(2) + 1;
+                endd = size_mfparams(2) + size_rule(2);
+                intcon = [startt:1:endd];
             end
+            
             % Initialize a matrix to store the initial population
             initialPop = [];
-            initialPop(1,:) = initial_var; 
+            initialPop(1,:) = initial_var;
             options = optimoptions('ga', PopulationType = obj.Tune_options.vartype ,PlotFcn = @gaplotbestf, OutputFcn = @captureBestCosts, MaxGenerations = MaxGens,PopulationSize = PopSize, InitialPopulationMatrix = initialPop);
-            [x,fval,exitflag,out, population,scores] = ga(obj.Problem.CostFunction, decvar.nvar,[],[], [],[],... 
-            obj.Problem.VarMin,obj.Problem.VarMax, [], [], options);
-
-            output.sol = x ; 
-            output.best = fval; 
-            output.exitflag = exitflag; 
-            output.out = out; 
+            [x,fval,exitflag,out, population,scores] = ga(obj.Problem.CostFunction, decvar.nvar,[],[], [],[],...
+                obj.Problem.VarMin,obj.Problem.VarMax, [], intcon, options);
+            
+            output.sol = x ;
+            output.best = fval;
+            output.exitflag = exitflag;
+            output.out = out;
             output.population = population;
-            output.scores = scores; 
-
+            output.scores = scores;
+            
         end
-        function [var_ranges, mf_types, mf_params, rule_base,rule_connections, rule_weights ] = get_fis_parameters(obj); 
+        function [var_ranges, mf_types, mf_params, rule_base,rule_connections, rule_weights ] = get_fis_parameters(obj);
             %% Get Fis paramater for optimization
-            fis = obj.Fis;  
-            inputs = fis.Inputs; 
-            ouputs = fis.Outputs ; 
-
-            %% Extract mf types and parameters;  
-            input_mfs = {inputs.MembershipFunctions}; 
-            output_mfs = {ouputs.MembershipFunctions}; 
-
-            input1_mf_types = {input_mfs{1}.Type};  
+            fis = obj.Fis;
+            inputs = fis.Inputs;
+            ouputs = fis.Outputs ;
+            
+            %% Extract mf types and parameters;
+            input_mfs = {inputs.MembershipFunctions};
+            output_mfs = {ouputs.MembershipFunctions};
+            
+            input1_mf_types = {input_mfs{1}.Type};
             input2_mf_types = {input_mfs{2}.Type};
             output_mf_types = {output_mfs{1}.Type};
-
-
+            
+            
             input1_mf_numericArray = cellfun(@(x) strcmp(x, "trapmf"), input1_mf_types);
             input2_mf_numericArray = cellfun(@(x) strcmp(x, "trapmf"), input2_mf_types);
             output_mf_numericArray = cellfun(@(x) strcmp(x, "trapmf"), output_mf_types);
-
+            
             % MF types array
-            mf_types  = [input1_mf_numericArray input2_mf_numericArray output_mf_numericArray]; 
-
+            mf_types  = [input1_mf_numericArray input2_mf_numericArray output_mf_numericArray];
+            
             input1_mf_params = cell2mat({input_mfs{1}.Parameters});
-            input2_mf_params = cell2mat({input_mfs{2}.Parameters}); 
+            input2_mf_params = cell2mat({input_mfs{2}.Parameters});
             output_mf_params = cell2mat({output_mfs{1}.Parameters});
-
+            
             % MF parameters array
             mf_params = [input1_mf_params input2_mf_params output_mf_params];
-
-            %% Extract the fis fuzzy ranges; 
-            inputs_range = cell2mat({fis.Inputs.Range}) ; 
-            output_range = cell2mat({fis.Output.Range}); 
-
-            var_ranges = [inputs_range output_range ];  % fuzzy variable ranges 
-
-            %% Extract rulebase and Rule weights 
+            
+            %% Extract the fis fuzzy ranges;
+            inputs_range = cell2mat({fis.Inputs.Range}) ;
+            output_range = cell2mat({fis.Output.Range});
+            
+            var_ranges = [inputs_range output_range ];  % fuzzy variable ranges
+            
+            %% Extract rulebase and Rule weights
             % Get the number of rules
             numRules = length(fis.Rules);
-
+            
             % Initialize an array to hold the rule base in a 2D format
             fis_ruleBase = zeros(numRules, length(fis.Inputs) + length(fis.Outputs));
-
+            
             % Loop through the rules to extract the antecedent and consequent
             for i = 1:numRules
                 % Extract antecedents (input conditions)
@@ -797,15 +886,15 @@ classdef  TuneableFis < handle
                 
                 % Combine them into a single row for the 2D array
                 fis_ruleBase(i, :) = [antecedents consequents];
-            end 
-            rule_base = fis_ruleBase; 
+            end
+            rule_base = fis_ruleBase;
             % rule connections
-            rule_operator = cell2mat({fis.Rules.Connection});  
-            rule_connections = rule_operator; 
-            % Get rule wights as an mat array  
-            rule_weights = cell2mat({fis.Rules.Weight}); 
+            rule_operator = cell2mat({fis.Rules.Connection});
+            rule_connections = rule_operator;
+            % Get rule wights as an mat array
+            rule_weights = cell2mat({fis.Rules.Weight});
             
         end
-   
+        
     end
 end
