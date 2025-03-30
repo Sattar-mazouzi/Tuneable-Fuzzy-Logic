@@ -27,10 +27,13 @@ classdef  TuneableFis < handle
         input2 struct;
         output struct;
         Rule_Base (:,5) double;
+        FisType string;
         Mf_Types cell;
         Fis_Parameters double;
         Mfs_Parameters cell;
+        Type2params double;
         Fis;
+        FisOptions = struct('fis_type',[],'lowerSclLim',[],'lowerLagLim',[]);
         Problem =  struct('CostFunction',[],'MaxIt',[],'nPop',[]);
         Optimization_Data  struct;
         Tune_Flag string = "None";
@@ -38,19 +41,22 @@ classdef  TuneableFis < handle
         
     end
     methods
-        % Use the constructor to initilaze a FIS with a gevin parameters
-        function obj = TuneableFis(fis_in1, fis_in2, fis_out,fis_rules)
+        % Use the constructor to initialize a FIS with a given parameters
+        function obj = TuneableFis(fis_in1, fis_in2, fis_out,fis_rules, fisOptions)
             arguments
                 fis_in1 struct;
                 fis_in2 struct;
                 fis_out struct;
                 fis_rules  (:,5) double ;
+                fisOptions struct; 
             end
             if nargin > 0
                 obj.input1 = fis_in1;
                 obj.input2 = fis_in2;
                 obj.output = fis_out;
                 obj.Rule_Base = fis_rules;
+                obj.FisOptions = fisOptions;
+                obj.FisType = obj.FisOptions.fis_type;
                 obj.Mf_Types =  {[obj.input1.MfTypes], [obj.input2.MfTypes], [obj.output.MfTypes]};
                 obj.Fis_Parameters = [obj.input1.range, obj.input1.MfNumber;
                     obj.input2.range, obj.input2.MfNumber;
@@ -62,11 +68,20 @@ classdef  TuneableFis < handle
                 disp("you must specify the Fis parameters");
             end
         end
-        function fis = create_fis(obj)  % this function creats a fis giving the initial parameters
+        function fis = create_fis(obj)  % this function creates a fis giving the initial parameters
             fuzzyVarParams = obj.Fis_Parameters;
             mf_parameters   = obj.genUniformMfs(fuzzyVarParams,obj.Mf_Types);
             obj.Mfs_Parameters = mf_parameters;
-            obj.Fis = tunebale_flc(obj.input1, obj.input2, obj.output,obj.Mf_Types, obj.Rule_Base,obj.Mfs_Parameters) ;
+            totalmf  = obj.input1.MfNumber + obj.input2.MfNumber+obj.output.MfNumber;
+            if obj.FisType == "type1"
+                obj.Type2params = zeros(1,(totalmf)*3);
+            elseif obj.FisType == "type2"
+                obj.Type2params = [ones(1,totalmf), 0.2*ones(1,totalmf), 0.2*ones(1,totalmf)];
+            else 
+                error("Invalid FIS type");
+            end
+            type2params = obj.Type2params;
+            obj.Fis = tunebale_flc(obj.input1, obj.input2, obj.output,obj.Mf_Types, obj.Rule_Base,obj.Mfs_Parameters,type2params, obj.FisOptions); 
             fis = obj.Fis;
         end
         function output = TuneMfTypes(obj, problem) % this function tunes the types of MFs to be either a Trap mf or Trian mf
@@ -127,8 +142,8 @@ classdef  TuneableFis < handle
             end
             
         end
-        %this fucntion tunes the rules wieghts
-        function output = TuneRuleWeigths(obj, problem)
+        %this function tunes the rules weights
+        function output = TuneRuleWeights(obj, problem)
             disp("----> Start ruel weights optimization ");
             obj.Tune_Flag = "TuneRW";
             obj.Tune_options.vartype = 'doubleVector';
@@ -148,7 +163,7 @@ classdef  TuneableFis < handle
             output = obj.Optimization_Data;
             
         end
-        % function to tune the fuzzy varieble ranges
+        % function to tune the fuzzy variable ranges
         function output = TuneFuzzyVarsRange(obj, problem, tune_range,range_offset)
             arguments
                 obj TuneableFis;
@@ -221,7 +236,7 @@ classdef  TuneableFis < handle
                     elseif it == 4
                         mkdir 5.Tune_Rulebase
                         cd 5.Tune_Rulebase
-                        out.ruleweights = obj.TuneRuleWeigths(problem);
+                        out.ruleweights = obj.TuneRuleWeights(problem);
                     end
                     cd ..;
                     it = it +1;
@@ -269,18 +284,34 @@ classdef  TuneableFis < handle
                 
                 obj.Mf_Types = obj.mftype_data(X);
                 obj.Mfs_Parameters   = obj.genUniformMfs(obj.Fis_Parameters, obj.Mf_Types );
-                obj.Fis = tunebale_flc(obj.input1, obj.input2, obj.output, obj.Mf_Types, obj.Rule_Base, obj.Mfs_Parameters );
+                obj.Fis = tunebale_flc(obj.input1, obj.input2, obj.output, obj.Mf_Types, obj.Rule_Base, obj.Mfs_Parameters, obj.FisType);
                 
             elseif obj.Tune_Flag == "TuneMfs"
                 
-                mf_params_data = obj.mf_parameter_data(X);
-                obj.Mfs_Parameters  = obj.transformToMfs(obj.Fis_Parameters, mf_params_data, obj.Mf_Types);
-                obj.Fis = tunebale_flc(obj.input1, obj.input2, obj.output, obj.Mf_Types, obj.Rule_Base, obj.Mfs_Parameters) ;
+                if obj.FisType == "type1"
+                    mf_params_data = obj.mf_parameter_data(X);
+                    obj.Mfs_Parameters  = obj.transformToMfs(obj.Fis_Parameters, mf_params_data, obj.Mf_Types);
+                    type2params = [];
+                elseif obj.FisType == "type2"
+                    x_upmf = X(1:end-(obj.input1.MfNumber+obj.input2.MfNumber+obj.output.MfNumber)*3); 
+                    jj = size(x_upmf);
+                    type2params = X(jj(2)+1:end);
+                    mf_params_data = obj.mf_parameter_data(x_upmf);
+                    obj.Mfs_Parameters  = obj.transformToMfs(obj.Fis_Parameters, mf_params_data, obj.Mf_Types);
+
+                else 
+                    error("Invalid FIS type");
+                end
+
+                %mf_params_data = obj.mf_parameter_data(X);
+                %obj.Mfs_Parameters  = obj.transformToMfs(obj.Fis_Parameters, mf_params_data, obj.Mf_Types);
+
+                obj.Fis = tunebale_flc(obj.input1, obj.input2, obj.output, obj.Mf_Types, obj.Rule_Base, obj.Mfs_Parameters, type2params, obj.FisOptions) ;
                 
             elseif obj.Tune_Flag == "TuneRules"
                 
                 obj.Rule_Base = genRuleBase(obj,X);
-                obj.Fis =  tunebale_flc(obj.input1, obj.input2, obj.output,obj.Mf_Types, obj.Rule_Base, obj.Mfs_Parameters);
+                obj.Fis =  tunebale_flc(obj.input1, obj.input2, obj.output,obj.Mf_Types, obj.Rule_Base, obj.Mfs_Parameters, obj.FisType);
                 
             elseif obj.Tune_Flag == "TuneFVR"
                 obj.input1.range = [X(1) X(4)];
@@ -291,7 +322,7 @@ classdef  TuneableFis < handle
                     obj.output.range, obj.output.MfNumber];
                 fuzzyVarParams = obj.Fis_Parameters;
                 obj.Mfs_Parameters   = obj.genUniformMfs(fuzzyVarParams,obj.Mf_Types);
-                obj.Fis =   tunebale_flc(obj.input1, obj.input2, obj.output,obj.Mf_Types, obj.Rule_Base, obj.Mfs_Parameters);
+                obj.Fis =   tunebale_flc(obj.input1, obj.input2, obj.output,obj.Mf_Types, obj.Rule_Base, obj.Mfs_Parameters, obj.FisType);
             elseif obj.Tune_Flag == "TuneMfNumber"
                 update_mf_numbers(obj,X);
                 code_bin = 3;
@@ -301,7 +332,7 @@ classdef  TuneableFis < handle
                 obj.Rule_Base = genRuleBase(obj,random_rules);
                 mf_parameters   = obj.genUniformMfs(obj.Fis_Parameters,obj.Mf_Types);
                 obj.Mfs_Parameters = mf_parameters;
-                obj.Fis =  tunebale_flc(obj.input1, obj.input2, obj.output,obj.Mf_Types, obj.Rule_Base, obj.Mfs_Parameters);
+                obj.Fis =  tunebale_flc(obj.input1, obj.input2, obj.output,obj.Mf_Types, obj.Rule_Base, obj.Mfs_Parameters, obj.FisType);
             elseif obj.Tune_Flag == "TuneRW"
                 rule_weights = X' ;
                 obj.Rule_Base(:,4) = rule_weights;
@@ -314,12 +345,24 @@ classdef  TuneableFis < handle
                 x_mf = X(1:size_mfparams(2));
                 x_rule = X(size_mfparams(2)+1:size_mfparams(2)+size_rule(2));
                 x_rule_weights  = X(size_mfparams(2)+size_rule(2)+1:end);
-                
-                mf_params_data = obj.mf_parameter_data(x_mf);
-                obj.Mfs_Parameters  = obj.transformToMfs(obj.Fis_Parameters, mf_params_data, obj.Mf_Types);
                 obj.Rule_Base(:,3)= x_rule';
                 obj.Rule_Base(:,4) = x_rule_weights';
-                obj.Fis =  tunebale_flc(obj.input1, obj.input2, obj.output,obj.Mf_Types, obj.Rule_Base, obj.Mfs_Parameters);
+                if obj.FisType == "type1"
+                    mf_params_data = obj.mf_parameter_data(x_mf);
+                    obj.Mfs_Parameters  = obj.transformToMfs(obj.Fis_Parameters, mf_params_data, obj.Mf_Types);
+                    type2params = [];
+                elseif obj.FisType == "type2"
+                    x_upmf = x_mf(1:end-(obj.input1.MfNumber+obj.input2.MfNumber+obj.output.MfNumber)*3); 
+                    jj = size(x_upmf);
+                    type2params = x_mf(jj(2)+1:end);
+                    mf_params_data = obj.mf_parameter_data(x_upmf);
+                    obj.Mfs_Parameters  = obj.transformToMfs(obj.Fis_Parameters, mf_params_data, obj.Mf_Types);
+
+                else 
+                    error("Invalid FIS type");
+                end
+                
+                obj.Fis =  tunebale_flc(obj.input1, obj.input2, obj.output,obj.Mf_Types, obj.Rule_Base, obj.Mfs_Parameters, type2params, obj.FisOptions);
                 
             end
         end
@@ -379,6 +422,8 @@ classdef  TuneableFis < handle
             varmax2 =  obj.output.MfNumber * ones(1,nvar2);
             
             [nvar3, varmin3, varmax3] = obj.ruleWeightsdata();
+
+           
             
             
             nvar = nvar1 + nvar2 + nvar3;
@@ -400,11 +445,28 @@ classdef  TuneableFis < handle
             in2Mf_params = 4*sum(in2Mf) + 3*sum(in2Mf==0);
             outMf_params = 4*sum(outMf) + 3*sum(outMf==0);
             % defining the number of decigion variable and its size and its upperand lower limits
+            if obj.FisType == "type1"
             nvar = 3*triangmf_num + 4*trapmf_num  ; % Number Of Unkown Variable
             varmin = zeros(1,nvar); % Lower Boun of the Variabls
             varmax =  [obj.input1.range(2)*ones(1,in1Mf_params),...
                 obj.input2.range(2)*ones(1,in2Mf_params),  ...
                 obj.output.range(2)*ones(1,outMf_params)];
+            elseif obj.FisType == "type2"
+                nvar = 6*triangmf_num + 7*trapmf_num    ; % Number Of Unkown Variable
+                varmin = [zeros(1,in1Mf_params),...
+                        zeros(1,in2Mf_params),  ...
+                        zeros(1,outMf_params) ... 
+                        obj.FisOptions.lowerSclLim*ones(1,obj.input1.MfNumber) obj.FisOptions.lowerSclLim*ones(1,obj.input2.MfNumber) obj.FisOptions.lowerSclLim*ones(1,obj.output.MfNumber) ... 
+                        0.01*ones(1,2*obj.input1.MfNumber) 0.01*ones(1, 2*obj.input2.MfNumber) 0.01*ones(1, 2*obj.output.MfNumber)]; % Lower limit of the Variabls
+                varmax =  [obj.input1.range(2)*ones(1,in1Mf_params),...
+                    obj.input2.range(2)*ones(1,in2Mf_params),  ...
+                    obj.output.range(2)*ones(1,outMf_params) ... 
+                        ones(1,obj.input1.MfNumber) ones(1,obj.input2.MfNumber) ones(1,obj.output.MfNumber) ... 
+                            obj.FisOptions.lowerLagLim*ones(1,2*obj.input1.MfNumber) obj.FisOptions.lowerLagLim*ones(1, 2*obj.input2.MfNumber) obj.FisOptions.lowerLagLim*ones(1, 2*obj.output.MfNumber)];
+
+            else 
+                error("Invalid FIS type");
+            end
         end
         function [nvar, varmin, varmax] = ruleWeightsdata(obj)
             %This function calculate the data for TuneRuleWeigths(), it calculatet he number of decision variables, their upper and lower limits
@@ -651,14 +713,14 @@ classdef  TuneableFis < handle
             end
             out1 = mfs ;
         end
-        function out =  normrange(obj,range)
+        function out =  normrange(~,range)
             % this function normalize range to 0 to 1
             fst = range(1) ;
             scnd = range(2);
             lw = 0;
             up = 0;
             offest = 0;
-            
+
             if  fst <=0
                 offest  = abs(fst);
                 %lw = fst +abs(fst);
@@ -809,9 +871,6 @@ classdef  TuneableFis < handle
                 intcon = [] ;
             elseif obj.Tune_Flag == "CompOpt"
                 initial_var = [mf_params rule_base(:,3)' rule_weights];
-                disp("Initial Var" + num2str(size(initial_var)));
-                disp("Nvar= " + num2str(decvar.nvar));
-                
                 size_rule = size(rule_base(:,3)');
                 size_mfparams = size(mf_params);
                 startt = size_mfparams(2) + 1;
@@ -856,13 +915,36 @@ classdef  TuneableFis < handle
             % MF types array
             mf_types  = [input1_mf_numericArray input2_mf_numericArray output_mf_numericArray];
             
-            input1_mf_params = cell2mat({input_mfs{1}.Parameters});
-            input2_mf_params = cell2mat({input_mfs{2}.Parameters});
-            output_mf_params = cell2mat({output_mfs{1}.Parameters});
-            
-            % MF parameters array
-            mf_params = [input1_mf_params input2_mf_params output_mf_params];
-            
+            if obj.FisType == "type1"
+                input1_mf_params = cell2mat({input_mfs{1}.Parameters});
+                input2_mf_params = cell2mat({input_mfs{2}.Parameters});
+                output_mf_params = cell2mat({output_mfs{1}.Parameters});
+                
+                % MF parameters array
+                mf_params = [input1_mf_params input2_mf_params output_mf_params];
+            elseif obj.FisType == "type2"
+                % Type 2
+                % Upperparameters
+                input1_mf_upparams = cell2mat({input_mfs{1}.UpperParameters});
+                input2_mf_upparams = cell2mat({input_mfs{2}.UpperParameters}); 
+                output_mf_upparams = cell2mat({output_mfs{1}.UpperParameters});
+                %lowerscales 
+                input1_mf_lowerscl = cell2mat({input_mfs{1}.LowerScale});
+                input2_mf_lowerscl = cell2mat({input_mfs{2}.LowerScale}); 
+                output_mf_lowerscl = cell2mat({output_mfs{1}.LowerScale});
+                
+                %lowerlags 
+                input1_mf_lowerlag = cell2mat({input_mfs{1}.LowerLag});
+                input2_mf_lowerlag = cell2mat({input_mfs{2}.LowerLag}); 
+                output_mf_lowerlag = cell2mat({output_mfs{1}.LowerLag});
+                
+                mf_params = [input1_mf_upparams input2_mf_upparams output_mf_upparams ... 
+                input1_mf_lowerscl input2_mf_lowerscl output_mf_lowerscl ... 
+                input1_mf_lowerlag input2_mf_lowerlag output_mf_lowerlag ];
+
+            else
+                error("Invalid Fis Type");
+            end
             %% Extract the fis fuzzy ranges;
             inputs_range = cell2mat({fis.Inputs.Range}) ;
             output_range = cell2mat({fis.Output.Range});
