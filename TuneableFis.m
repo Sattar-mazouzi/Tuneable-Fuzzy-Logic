@@ -881,7 +881,7 @@ classdef  TuneableFis < handle
             % Initialize a matrix to store the initial population
             initialPop = [];
             initialPop(1,:) = initial_var;
-            options = optimoptions('ga', PopulationType = obj.Tune_options.vartype ,PlotFcn = @gaplotbestf, OutputFcn = @captureBestCosts, MaxGenerations = MaxGens,PopulationSize = PopSize, InitialPopulationMatrix = initialPop);
+            options = optimoptions('ga', PopulationType = obj.Tune_options.vartype ,PlotFcn = @gaplotbestf, OutputFcn = @captureBests, MaxGenerations = MaxGens,PopulationSize = PopSize, InitialPopulationMatrix = initialPop);
             [x,fval,exitflag,out, population,scores] = ga(obj.Problem.CostFunction, decvar.nvar,[],[], [],[],...
                 obj.Problem.VarMin,obj.Problem.VarMax, [], intcon, options);
             
