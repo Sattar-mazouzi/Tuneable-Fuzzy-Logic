@@ -3,8 +3,8 @@
 _This project is functional but still under development to improve functionality and add more features._
 
 ## Overview
-
-The Tuneable Mamdani Fuzzy Logic Inference System (M-FIS)  is a customizable and optimizable fuzzy logic system. This system allows users to fine-tune their FIS through various optimization algorithms to meet specific cost function requirements. Users can create up to two inputs and one output, with the ability to customize each fuzzy variable using triangular or trapezoidal membership functions.
+![Alt text](Tunable_flc.png)
+The Tunable Mamdani Fuzzy Logic Inference System (M-FIS)  is a customizable and optimizable fuzzy logic system. This system allows users to fine-tune their FIS through various optimization algorithms to meet specific cost function requirements. Users can create up to two inputs and one output, with the ability to customize each fuzzy variable using triangular or trapezoidal membership functions.
 
 ## Features
 
